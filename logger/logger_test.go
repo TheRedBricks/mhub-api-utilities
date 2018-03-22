@@ -33,7 +33,7 @@ func testHandler() http.HandlerFunc {
 }
 
 func TestLogger(t *testing.T) {
-	timeRegex := "^\\d{4}\\/\\d{2}\\/\\d{2}\\s\\d{2}:\\d{2}:\\d{2}"
+	timeRegex := "\\d{4}\\/\\d{2}\\/\\d{2}\\s\\d{2}:\\d{2}:\\d{2}"
 	tests := []struct {
 		description string
 		url         string
@@ -42,17 +42,17 @@ func TestLogger(t *testing.T) {
 		{
 			description: "Test OK Log",
 			url:         "/ok",
-			expectedLog: timeRegex + " GET \\/ok 200\\s.*\\n$",
+			expectedLog: "^" + timeRegex + " GET \\/ok 200\\s.*\\n$",
 		},
 		{
 			description: "Test Not Found Log",
 			url:         "/not_found",
-			expectedLog: timeRegex + " GET \\/not_found 404\\s.*\\n$",
+			expectedLog: "^" + timeRegex + " GET \\/not_found 404\\s.*\\n$",
 		},
 		{
 			description: "Test Internal Server Error Log",
 			url:         "/error",
-			expectedLog: timeRegex + " GET \\/error 500\\s.*\\n$",
+			expectedLog: "^" + timeRegex + " GET \\/error 500\\s.*\\n$",
 		},
 	}
 
