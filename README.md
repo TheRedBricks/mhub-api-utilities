@@ -9,6 +9,8 @@ go get -u github.com/TheRedBricks/mhub-api-utilities
 ## Logger Middleware
 Logger middleware to extend HTTP servers. Logger will print method, URL, HTTP Status and time taken in your terminal.
 
+![Terminal Screenshot](https://user-images.githubusercontent.com/1572333/37758694-0e1f0df8-2dec-11e8-920e-e30dcb0160f2.png "Terminal Screenshot")
+
 ### With Goji
 ```go
 package main
