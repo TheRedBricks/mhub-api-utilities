@@ -147,7 +147,7 @@ func TestTrackRequest(t *testing.T) {
 		},
 	}
 
-	tr := &trackrequest.Manager{}
+	tr := trackrequest.NewManager()
 	tr.OnRequest = func(log *trackrequest.RequestLog) {
 		test := tests[log.Method+" "+log.URL]
 		assert.Equal(t, test.expects.recordLog.Method, log.Method)

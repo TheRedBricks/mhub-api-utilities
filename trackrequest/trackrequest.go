@@ -31,6 +31,11 @@ type RequestLog struct {
 	CreatedAt *time.Time
 }
 
+// NewManager sets up new Manager
+func NewManager() *Manager {
+	return &Manager{}
+}
+
 // Middleware to track requests
 func (manager *Manager) Middleware(h http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {

@@ -60,7 +60,7 @@ import (
 func main() {
 	mux := goji.NewMux()
 
-	tr := &trackrequest.Manager{}
+	tr := trackrequest.NewManager()
 	tr.OnRequest = func(log *trackrequest.RequestLog) {
 		// save log to DB or display into terminal
 		fmt.Printf("%+v\n", log)
