@@ -7,7 +7,7 @@ go get -u github.com/TheRedBricks/mhub-api-utilities
 ```
 
 ## Logger Middleware
-Logger middleware to extend HTTP servers. Logger will print method, URL, HTTP Status and time taken in your terminal.
+Middleware to extend HTTP servers. Logger will print method, URL, HTTP Status and time taken in your terminal.
 
 ![Terminal Screenshot](https://user-images.githubusercontent.com/1572333/37758694-0e1f0df8-2dec-11e8-920e-e30dcb0160f2.png "Terminal Screenshot")
 
@@ -28,6 +28,48 @@ import (
 func main() {
 	mux := goji.NewMux()
 	mux.Use(logger.Middleware)
+
+	mux.HandleFunc(pat.Get("/"), func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, "MHub API")
+	})
+
+	http.ListenAndServe(":8000", mux)
+}
+```
+
+## Track Request Middleware
+Middleware to extend HTTP servers. Use tracker to keep track of requests coming through the server. Method, URL, IP, Headers, Body & Cookies are returned on request.
+
+![Terminal Screenshot](https://user-images.githubusercontent.com/1572333/38293471-2a383270-381a-11e8-95ac-06229d2246e1.png "Terminal Screenshot")
+
+### With Goji
+```go
+package main
+
+import (
+	"fmt"
+	"io"
+	"net/http"
+
+	"github.com/TheRedBricks/mhub-api-utilities/trackrequest"
+
+	"goji.io"
+	"goji.io/pat"
+)
+
+func main() {
+	mux := goji.NewMux()
+
+	tr := &trackrequest.Manager{}
+	tr.OnRequest = func(log *trackrequest.RequestLog) {
+		// save log to DB or display into terminal
+		fmt.Printf("%+v\n", log)
+	}
+	tr.OnError = func(err error) {
+		// handle err optional
+		fmt.Println(err)
+	}
+	mux.Use(tr.Middleware)
 
 	mux.HandleFunc(pat.Get("/"), func(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, "MHub API")
