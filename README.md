@@ -27,12 +27,11 @@ import (
 
 func main() {
 	mux := goji.NewMux()
+	mux.Use(logger.Middleware)
 
 	mux.HandleFunc(pat.Get("/"), func(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, "MHub API")
 	})
-
-	mux.Use(logger.Middleware)
 
 	http.ListenAndServe(":8000", mux)
 }
