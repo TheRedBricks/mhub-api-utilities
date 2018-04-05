@@ -14,15 +14,21 @@ type onRequest func(*RequestLog)
 // onError receives error
 type onError func(error)
 
+// identify request log with user
+type identify func(RequestLog) string
+
 // Manager structure
 type Manager struct {
 	OnRequest         onRequest
 	OnRequestComplete onRequest
 	OnError           onError
+
+	Identify identify
 }
 
 // RequestLog structure
 type RequestLog struct {
+	IdentityID string
 	Method     string
 	URL        string
 	IP         string
@@ -83,6 +89,14 @@ func (manager *Manager) Middleware(h http.Handler) http.Handler {
 		}
 
 		h.ServeHTTP(w, r)
+
+		// identify request to the user
+		if manager.Identify != nil {
+			identityID := manager.Identify(*log)
+			if identityID != "" {
+				log.IdentityID = identityID
+			}
+		}
 
 		// keep track of time taken
 		log.TimeTaken = time.Since(start)
