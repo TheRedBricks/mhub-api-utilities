@@ -40,7 +40,7 @@ func main() {
 ## Track Request Middleware
 Middleware to extend HTTP servers. Use tracker to keep track of requests coming through the server. Method, URL, IP, Headers, Body & Cookies are returned on request.
 
-![Terminal Screenshot](https://user-images.githubusercontent.com/1572333/38293471-2a383270-381a-11e8-95ac-06229d2246e1.png "Terminal Screenshot")
+![Terminal Screenshot](https://user-images.githubusercontent.com/1572333/38349283-e579f4ec-38d8-11e8-9be0-f317d1cf3f8a.png "Terminal Screenshot")
 
 ### With Goji
 ```go
