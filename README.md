@@ -60,16 +60,35 @@ import (
 func main() {
 	mux := goji.NewMux()
 
-	tr := trackrequest.NewManager()
+	tr := trackrequest.NewManager(&trackrequest.Manager{})
 	tr.OnRequest = func(log *trackrequest.RequestLog) {
 		// save log to DB or display into terminal
-		fmt.Printf("%+v\n", log)
+		// onRequest is triggered as soon as requests comes in
+		fmt.Printf("-- onRequest --------- %+v\n", log)
+	}
+	tr.OnRequestComplete = func(log *trackrequest.RequestLog) {
+		// save log to DB or display into terminal
+		// onRequestComplete is triggered at the end
+		// onRequestComplete includes TimeTaken and IdentityID
+		fmt.Printf("-- onRequestComplete - %+v\n", log)
 	}
 	tr.OnError = func(err error) {
 		// handle err optional
 		fmt.Println(err)
 	}
 	mux.Use(tr.Middleware)
+
+	// other middleware...
+	mux.Use(func(h http.Handler) http.Handler {
+		fn := func(w http.ResponseWriter, r *http.Request) {
+			// attach user to log if logged in
+			tr.Identify = func(log trackrequest.RequestLog) string {
+				return "jo@nne.my"
+			}
+			h.ServeHTTP(w, r)
+		}
+		return http.HandlerFunc(fn)
+	})
 
 	mux.HandleFunc(pat.Get("/"), func(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, "MHub API")
