@@ -32,8 +32,8 @@ type RequestLog struct {
 }
 
 // NewManager sets up new Manager
-func NewManager() *Manager {
-	return &Manager{}
+func NewManager(manager *Manager) *Manager {
+	return manager
 }
 
 // Middleware to track requests
