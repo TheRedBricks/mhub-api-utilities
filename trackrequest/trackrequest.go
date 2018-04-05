@@ -23,13 +23,14 @@ type Manager struct {
 
 // RequestLog structure
 type RequestLog struct {
-	Method    string
-	URL       string
-	IP        string
-	Headers   map[string][]string
-	Cookies   map[string][]string
-	Body      []byte
-	CreatedAt *time.Time
+	Method     string
+	URL        string
+	IP         string
+	Headers    map[string][]string
+	Cookies    map[string][]string
+	Body       []byte
+	CreatedAt  *time.Time
+	TimeTaken  time.Duration
 }
 
 // NewManager sets up new Manager
@@ -40,14 +41,14 @@ func NewManager(manager *Manager) *Manager {
 // Middleware to track requests
 func (manager *Manager) Middleware(h http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		now := time.Now()
+		start := time.Now()
 		log := &RequestLog{
 			Method:    r.Method,
 			URL:       r.URL.String(),
 			IP:        r.Header.Get("X-Forwarded-For"),
 			Headers:   make(map[string][]string),
 			Cookies:   make(map[string][]string),
-			CreatedAt: &now,
+			CreatedAt: &start,
 		}
 
 		// store headers
@@ -82,6 +83,9 @@ func (manager *Manager) Middleware(h http.Handler) http.Handler {
 		}
 
 		h.ServeHTTP(w, r)
+
+		// keep track of time taken
+		log.TimeTaken = time.Since(start)
 
 		// trigger completed call
 		if manager.OnRequestComplete != nil {
