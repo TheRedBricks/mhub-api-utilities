@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -59,10 +60,11 @@ func TestTrackRequest(t *testing.T) {
 			body:   "",
 			expects: &expects{
 				recordLog: &trackrequest.RequestLog{
-					Method: "GET",
-					URL:    "/ok",
-					IP:     ip,
-					Body:   []byte(""),
+					IdentityID: "jo@nne.my",
+					Method:     "GET",
+					URL:        "/ok",
+					IP:         ip,
+					Body:       []byte(""),
 					Headers: map[string][]string{
 						"User-Agent":      []string{"test-client"},
 						"X-Forwarded-For": []string{ip},
@@ -82,10 +84,11 @@ func TestTrackRequest(t *testing.T) {
 			body:   "{\"name\":\"Joanne\",\"email\":\"jo@nne.my\"}",
 			expects: &expects{
 				recordLog: &trackrequest.RequestLog{
-					Method: "POST",
-					URL:    "/user",
-					IP:     ip,
-					Body:   []byte("{\"name\":\"Joanne\",\"email\":\"jo@nne.my\"}"),
+					IdentityID: "jo@nne.my",
+					Method:     "POST",
+					URL:        "/user",
+					IP:         ip,
+					Body:       []byte("{\"name\":\"Joanne\",\"email\":\"jo@nne.my\"}"),
 					Headers: map[string][]string{
 						"User-Agent":      []string{"test-client"},
 						"X-Forwarded-For": []string{ip},
@@ -105,10 +108,11 @@ func TestTrackRequest(t *testing.T) {
 			body:   "{\"name\":\"Joanne\",\"email\":\"jo@nne.my\"}",
 			expects: &expects{
 				recordLog: &trackrequest.RequestLog{
-					Method: "PUT",
-					URL:    "/user",
-					IP:     ip,
-					Body:   []byte("{\"name\":\"Joanne\",\"email\":\"jo@nne.my\"}"),
+					IdentityID: "jo@nne.my",
+					Method:     "PUT",
+					URL:        "/user",
+					IP:         ip,
+					Body:       []byte("{\"name\":\"Joanne\",\"email\":\"jo@nne.my\"}"),
 					Headers: map[string][]string{
 						"User-Agent":      []string{"test-client"},
 						"X-Forwarded-For": []string{ip},
@@ -128,10 +132,11 @@ func TestTrackRequest(t *testing.T) {
 			body:   "",
 			expects: &expects{
 				recordLog: &trackrequest.RequestLog{
-					Method: "GET",
-					URL:    "/error",
-					IP:     ip,
-					Body:   []byte(""),
+					IdentityID: "jo@nne.my",
+					Method:     "GET",
+					URL:        "/error",
+					IP:         ip,
+					Body:       []byte(""),
 					Headers: map[string][]string{
 						"User-Agent":      []string{"test-client"},
 						"X-Forwarded-For": []string{ip},
@@ -145,15 +150,41 @@ func TestTrackRequest(t *testing.T) {
 				responseBody:   "An error occurred",
 			},
 		},
+		"GET /forbidden": {
+			method: "GET",
+			url:    "/forbidden",
+			body:   "",
+			expects: &expects{
+				recordLog: &trackrequest.RequestLog{
+					IdentityID: "jo@nne.my",
+					Method:     "GET",
+					URL:        "/forbidden",
+					IP:         ip,
+					Body:       []byte(""),
+					Headers: map[string][]string{
+						"User-Agent":      []string{"test-client"},
+						"X-Forwarded-For": []string{ip},
+					},
+					Cookies: map[string][]string{
+						"cookie_name":         []string{"cookie_value_1", "cookie_value_2"},
+						"another_cookie_name": []string{"cookie_value_=strange"},
+					},
+				},
+				responseStatus: http.StatusForbidden,
+				responseBody:   "Forbidden",
+			},
+		},
 	}
 
-	tr := trackrequest.NewManager()
+	tr := trackrequest.NewManager(&trackrequest.Manager{})
 	tr.OnRequest = func(log *trackrequest.RequestLog) {
 		test := tests[log.Method+" "+log.URL]
+		assert.Equal(t, "", log.IdentityID)
 		assert.Equal(t, test.expects.recordLog.Method, log.Method)
 		assert.Equal(t, test.expects.recordLog.URL, log.URL)
 		assert.Equal(t, test.expects.recordLog.IP, log.IP)
 		assert.Equal(t, test.expects.recordLog.Body, log.Body)
+		assert.Equal(t, time.Duration(0), log.TimeTaken)
 		for key, expectedHeader := range test.expects.recordLog.Headers {
 			logHeader := log.Headers[key]
 			assert.Subset(t, expectedHeader, logHeader)
@@ -163,8 +194,42 @@ func TestTrackRequest(t *testing.T) {
 			assert.Subset(t, expectedCookie, cookie)
 		}
 	}
+	tr.OnRequestComplete = func(log *trackrequest.RequestLog) {
+		test := tests[log.Method+" "+log.URL]
+		assert.Equal(t, test.expects.recordLog.IdentityID, log.IdentityID)
+		assert.Equal(t, test.expects.recordLog.Method, log.Method)
+		assert.Equal(t, test.expects.recordLog.URL, log.URL)
+		assert.Equal(t, test.expects.recordLog.IP, log.IP)
+		assert.Equal(t, test.expects.recordLog.Body, log.Body)
+		assert.True(t, log.TimeTaken > time.Duration(0))
+		for key, expectedHeader := range test.expects.recordLog.Headers {
+			logHeader := log.Headers[key]
+			assert.Subset(t, expectedHeader, logHeader)
+		}
+		for key, expectedCookie := range test.expects.recordLog.Cookies {
+			cookie := log.Cookies[key]
+			assert.Subset(t, expectedCookie, cookie)
+		}
+	}
+	tr.OnError = func(err error) {
+		assert.NoError(t, err)
+	}
 
-	ts := httptest.NewServer(tr.Middleware(testHandler()))
+	secureMiddleware := func(h http.Handler) http.Handler {
+		fn := func(w http.ResponseWriter, r *http.Request) {
+			tr.Identify = func(log trackrequest.RequestLog) string {
+				return "jo@nne.my"
+			}
+			if r.URL.Path == "/forbidden" {
+				http.Error(w, "Forbidden", http.StatusForbidden)
+				return
+			}
+			h.ServeHTTP(w, r)
+		}
+		return http.HandlerFunc(fn)
+	}
+
+	ts := httptest.NewServer(tr.Middleware(secureMiddleware(testHandler())))
 	defer ts.Close()
 
 	for _, tc := range tests {
