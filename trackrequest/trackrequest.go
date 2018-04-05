@@ -16,8 +16,9 @@ type onError func(error)
 
 // Manager structure
 type Manager struct {
-	OnRequest onRequest
-	OnError   onError
+	OnRequest         onRequest
+	OnRequestComplete onRequest
+	OnError           onError
 }
 
 // RequestLog structure
@@ -81,6 +82,11 @@ func (manager *Manager) Middleware(h http.Handler) http.Handler {
 		}
 
 		h.ServeHTTP(w, r)
+
+		// trigger completed call
+		if manager.OnRequestComplete != nil {
+			manager.OnRequestComplete(log)
+		}
 	}
 	return http.HandlerFunc(fn)
 }
