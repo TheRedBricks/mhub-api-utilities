@@ -98,11 +98,11 @@ func (manager *Manager) Middleware(h http.Handler) http.Handler {
 			}
 		}
 
-		// keep track of time taken
-		log.TimeTaken = time.Since(start)
-
 		// trigger completed call
 		if manager.OnRequestComplete != nil {
+			// keep track of time taken
+			log.TimeTaken = time.Since(start)
+
 			manager.OnRequestComplete(log)
 		}
 	}
